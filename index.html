@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extrator de Exames Recentes</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+    .container { max-width: 800px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1, h2 { color: #0056b3; }
+    textarea { width: 98%; height: 250px; margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+    button { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+    button:hover { background-color: #0056b3; }
+    #resultadosDiv { margin-top: 20px; border: 1px solid #ddd; background-color: #e9ecef; padding: 15px; border-radius: 4px; word-break: break-all; min-height: 50px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Extrator de Exames Recentes</h1>
+        <label for="laudoTexto">Cole o texto da página "LAUDO COMPARATIVO" abaixo:</label>
+        <textarea id="laudoTexto" placeholder="HEMOGLOBINA 13,5 13,6 13,6 12,3 12,0 10,9
+HEMAT OCRIT O 40,0 41,5 40,2 36,2 34,1 32,2
+..."></textarea>
+        <button onclick="processarLaudo()">Extrair Resultados</button>
+
+        <h2>Resultados Mais Recentes (separados por vírgula):</h2>
+        <div id="resultadosDiv">
+            <!-- Os resultados serão exibidos aqui -->
+        </div>
+    </div>
+
+    <script>
+        function extractRecentExamResultsSimplified(ocrTextPage44) {
+          // COLE A FUNÇÃO JAVASCRIPT SIMPLIFICADA (VERSÃO MAIS RECENTE) AQUI
+          if (!ocrTextPage44 || typeof ocrTextPage44 !== 'string') {
+            return "";
+          }
+          const lines = ocrTextPage44.split('\n');
+          const extractedExamResults = [];
+          let potentialExamName = "";
+
+          for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+
+            if (!line ||
+                line.toUpperCase().startsWith("EXAME") ||
+                line.toUpperCase().startsWith("RESULTADO ATUAL") ||
+                line.toUpperCase().startsWith("RESULTADOS ANTERIORES") ||
+                /^\s*026-/.test(line) ||
+                /^\s*\d{2}\/\d{2}\/\d{4}/.test(line) && (line.match(/\//g) || []).length > 1) {
+              potentialExamName = "";
+              continue;
+            }
+
+            const match = line.match(/^([A-ZÁÉÍÓÚÇÃÕÑ\s.'’]+?)\s+([<>]?\s*[\d,.-].*)$/i);
+
+            if (match) {
+              let examNamePart = match[1].trim().replace(/\s+/g, ' ');
+              const valuesString = match[2].trim();
+              const values = valuesString.split(/\s+/);
+              let finalExamName = examNamePart;
+
+              if (potentialExamName &&
+                  potentialExamName.length > 1 && // O nome potencial deve ser significativo
+                  !valuesString.match(/^\s*[A-ZÁÉÍÓÚÇÃÕÑ]{3,}/i) && // O início dos valores não deve parecer um nome
+                  examNamePart.length > 1 &&
+                  !values[0].match(/[A-Za-z]/) && // O primeiro "valor" não é texto
+                  !potentialExamName.toUpperCase().includes(examNamePart.toUpperCase().substring(0, Math.min(5, examNamePart.length))) // Evitar duplicar partes do nome
+                 ) {
+                 finalExamName = (potentialExamName + " " + examNamePart).replace(/\s+/g, ' ');
+              }
+
+
+              const currentResultValue = values[0];
+
+              if (currentResultValue && currentResultValue.trim() !== "") {
+                if (finalExamName.length > 2 && finalExamName.toUpperCase() !== "T" && finalExamName.toUpperCase() !== "O" && !/^\d+$/.test(finalExamName) && !finalExamName.toUpperCase().includes("PÁGINA")) {
+                  extractedExamResults.push(`${finalExamName}: ${currentResultValue.trim()}`);
+                  potentialExamName = "";
+                } else {
+                  potentialExamName = "";
+                }
+              } else {
+                potentialExamName = finalExamName; // Guarda o nome se não houver valor para ele ainda
+              }
+            } else if (line.length > 2 && !/^\s*[\d,.-]/.test(line) && !line.toUpperCase().includes("ATUAL") && !line.toUpperCase().includes("HTTP") && !line.toUpperCase().includes("PÁGINA")) {
+              potentialExamName = (potentialExamName ? potentialExamName + " " + line : line).replace(/\s+/g, ' ');
+            } else {
+              potentialExamName = "";
+            }
+          }
+          return extractedExamResults.join(", ");
+        }
+
+        function processarLaudo() {
+            const laudoTexto = document.getElementById('laudoTexto').value;
+            const resultadosDiv = document.getElementById('resultadosDiv');
+            if (!laudoTexto.trim()) {
+                resultadosDiv.textContent = "Por favor, cole o texto do laudo.";
+                return;
+            }
+
+            const resultadosEmLinha = extractRecentExamResultsSimplified(laudoTexto);
+
+            if (resultadosEmLinha) {
+                resultadosDiv.textContent = resultadosEmLinha;
+            } else {
+                resultadosDiv.textContent = "Nenhum resultado pôde ser extraído. Verifique o texto colado e o formato esperado.";
+            }
+        }
+    </script>
+
+</body>
+</html>
